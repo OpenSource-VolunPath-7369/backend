@@ -59,13 +59,18 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "201", description = "User created successfully."),
             @ApiResponse(responseCode = "400", description = "Bad request.")})
     public ResponseEntity<UserResource> signUp(@RequestBody SignUpResource signUpResource) {
-        var signUpCommand = SignUpCommandFromResourceAssembler.toCommandFromResource(signUpResource);
-        var user = userCommandService.handle(signUpCommand);
-        if (user.isEmpty()) {
-            return ResponseEntity.badRequest().build();
+        try {
+            var signUpCommand = SignUpCommandFromResourceAssembler.toCommandFromResource(signUpResource);
+            var user = userCommandService.handle(signUpCommand);
+            if (user.isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            var userResource = UserResourceFromEntityAssembler.toResourceFromEntity(user.get());
+            return new ResponseEntity<>(userResource, HttpStatus.CREATED);
+        } catch (RuntimeException e) {
+            // Re-throw to be handled by GlobalExceptionHandler
+            throw e;
         }
-        var userResource = UserResourceFromEntityAssembler.toResourceFromEntity(user.get());
-        return new ResponseEntity<>(userResource, HttpStatus.CREATED);
     }
 }
 
