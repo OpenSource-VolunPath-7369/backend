@@ -1,0 +1,55 @@
+# Archivos compilados
+target/
+*.class
+*.jar
+*.war
+
+# Archivos de IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.settings/
+.classpath
+.project
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentación
+*.md
+README*
+HELP.md
+ENDPOINTS.md
+SERVICES_DOCUMENTATION.md
+TECHNICAL_STORIES.md
+
+# Scripts locales
+*.bat
+*.sh
+ejecutar-backend.bat
+start-server.sh
+
+# Archivos de base de datos locales
+database/
+*.sql
+
+# Logs
+*.log
+logs/
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+
