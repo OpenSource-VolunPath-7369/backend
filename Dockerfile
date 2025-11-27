@@ -28,6 +28,9 @@ COPY --from=build /app/target/*.jar app.jar
 # Exponer el puerto (Railway lo configurará automáticamente)
 EXPOSE 8080
 
+# Variables de entorno
+ENV PORT=8080
+
 # Ejecutar la aplicación
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} $JAVA_OPTS -jar app.jar"]
 
