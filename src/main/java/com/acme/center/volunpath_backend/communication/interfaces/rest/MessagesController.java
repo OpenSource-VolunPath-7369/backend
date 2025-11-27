@@ -10,6 +10,8 @@ import com.acme.center.volunpath_backend.communication.interfaces.rest.transform
 import com.acme.center.volunpath_backend.communication.interfaces.rest.transform.MessageResourceFromEntityAssembler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,7 @@ import java.util.List;
 @RequestMapping(value = "/api/v1/messages", produces = MediaType.APPLICATION_JSON_VALUE)
 @Tag(name = "Messages", description = "Message Management Endpoints")
 public class MessagesController {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MessagesController.class);
     private final MessageCommandService messageCommandService;
     private final MessageQueryService messageQueryService;
 
@@ -37,10 +40,13 @@ public class MessagesController {
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get messages by user ID")
     public ResponseEntity<List<MessageResource>> getMessagesByUserId(@PathVariable Long userId) {
+        LOGGER.info("GET /messages/user/{} - Request received", userId);
         var messages = messageQueryService.handle(new GetMessagesByUserIdQuery(userId));
+        LOGGER.info("GET /messages/user/{} - Found {} messages", userId, messages.size());
         var resources = messages.stream()
                 .map(MessageResourceFromEntityAssembler::toResourceFromEntity)
                 .toList();
+        LOGGER.info("GET /messages/user/{} - Returning {} message resources", userId, resources.size());
         return ResponseEntity.ok(resources);
     }
 
