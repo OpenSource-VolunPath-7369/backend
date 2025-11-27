@@ -36,21 +36,28 @@ public class AuthenticationController {
     }
 
     @PostMapping("/sign-in")
-    @Operation(summary = "Sign-in", description = "Sign-in with the provided credentials.")
+    @Operation(summary = "Sign-in", description = "Sign-in with the provided credentials. Accepts username or email.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User authenticated successfully."),
+            @ApiResponse(responseCode = "401", description = "Invalid credentials."),
             @ApiResponse(responseCode = "404", description = "User not found.")})
     public ResponseEntity<AuthenticatedUserResource> signIn(@RequestBody SignInResource signInResource) {
-        var signInCommand = SignInCommandFromResourceAssembler.toCommandFromResource(signInResource);
-        var authenticatedUser = userCommandService.handle(signInCommand);
-        if (authenticatedUser.isEmpty()) {
-            return ResponseEntity.notFound().build();
+        try {
+            var signInCommand = SignInCommandFromResourceAssembler.toCommandFromResource(signInResource);
+            var authenticatedUser = userCommandService.handle(signInCommand);
+            if (authenticatedUser.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            var authenticatedUserResource = AuthenticatedUserResourceFromEntityAssembler.toResourceFromEntity(
+                    authenticatedUser.get().getLeft(),
+                    authenticatedUser.get().getRight()
+            );
+            return ResponseEntity.ok(authenticatedUserResource);
+        } catch (RuntimeException e) {
+            // Re-throw to be handled by GlobalExceptionHandler
+            // It will return 500, but the message will indicate the specific error
+            throw e;
         }
-        var authenticatedUserResource = AuthenticatedUserResourceFromEntityAssembler.toResourceFromEntity(
-                authenticatedUser.get().getLeft(),
-                authenticatedUser.get().getRight()
-        );
-        return ResponseEntity.ok(authenticatedUserResource);
     }
 
     @PostMapping("/sign-up")
