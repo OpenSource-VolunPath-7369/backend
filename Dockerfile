@@ -32,5 +32,6 @@ EXPOSE 8080
 ENV PORT=8080
 
 # Ejecutar la aplicación
+# Railway inyecta la variable PORT automáticamente
 ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar app.jar"]
 
