@@ -33,29 +33,48 @@ public class MessageQueryServiceImpl implements MessageQueryService {
     public List<Message> handle(GetMessagesByUserIdQuery query) {
         LOGGER.info("Querying messages for userId: {}", query.userId());
         
-        // Get messages where user is recipient or sender
-        List<Message> messages = messageRepository.findByRecipientIdOrSenderId(query.userId(), query.userId());
+        // Try separate queries first to debug
+        List<Message> recipientMessages = messageRepository.findByRecipientId(query.userId());
+        LOGGER.info("Found {} messages as recipient for userId: {}", recipientMessages.size(), query.userId());
         
-        LOGGER.info("Found {} messages for userId: {}", messages.size(), query.userId());
+        List<Message> senderMessages = messageRepository.findBySenderId(query.userId());
+        LOGGER.info("Found {} messages as sender for userId: {}", senderMessages.size(), query.userId());
         
-        if (messages.isEmpty()) {
-            // Try to find messages as recipient only
-            List<Message> recipientMessages = messageRepository.findByRecipientId(query.userId());
-            LOGGER.info("Found {} messages as recipient for userId: {}", recipientMessages.size(), query.userId());
-            
-            // Try to find messages as sender only
-            List<Message> senderMessages = messageRepository.findBySenderId(query.userId());
-            LOGGER.info("Found {} messages as sender for userId: {}", senderMessages.size(), query.userId());
-        } else {
-            // Log first few messages for debugging
-            messages.stream().limit(3).forEach(msg -> {
-                LOGGER.debug("Message ID: {}, Sender: {}, Recipient: {}, Content: {}", 
+        // Combine both lists and remove duplicates
+        java.util.Set<Long> seenIds = new java.util.HashSet<>();
+        List<Message> combinedMessages = new java.util.ArrayList<>();
+        
+        for (Message msg : recipientMessages) {
+            if (!seenIds.contains(msg.getId())) {
+                combinedMessages.add(msg);
+                seenIds.add(msg.getId());
+            }
+        }
+        
+        for (Message msg : senderMessages) {
+            if (!seenIds.contains(msg.getId())) {
+                combinedMessages.add(msg);
+                seenIds.add(msg.getId());
+            }
+        }
+        
+        LOGGER.info("Combined total: {} unique messages for userId: {}", combinedMessages.size(), query.userId());
+        
+        // Also try the original method for comparison
+        List<Message> orMethodMessages = messageRepository.findByRecipientIdOrSenderId(query.userId(), query.userId());
+        LOGGER.info("findByRecipientIdOrSenderId returned {} messages", orMethodMessages.size());
+        
+        // Log first few messages for debugging
+        if (!combinedMessages.isEmpty()) {
+            combinedMessages.stream().limit(3).forEach(msg -> {
+                LOGGER.info("Message ID: {}, Sender: {}, Recipient: {}, Content: {}", 
                     msg.getId(), msg.getSenderId(), msg.getRecipientId(), 
                     msg.getContent().length() > 50 ? msg.getContent().substring(0, 50) + "..." : msg.getContent());
             });
         }
         
-        return messages;
+        // Return combined messages (more reliable)
+        return combinedMessages;
     }
 }
 

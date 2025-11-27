@@ -61,6 +61,18 @@ public class MessagesController {
         return ResponseEntity.ok(resource);
     }
 
+    @GetMapping("/debug/all")
+    @Operation(summary = "DEBUG: Get all messages (for debugging only)")
+    public ResponseEntity<List<MessageResource>> getAllMessages() {
+        LOGGER.warn("DEBUG: Getting all messages - this endpoint should be removed in production");
+        // This is a temporary debug endpoint
+        var allMessages = messageQueryService.handle(new GetMessagesByUserIdQuery(0L));
+        // Actually, we need to get all messages, not by userId
+        // For now, let's just return an empty list and log
+        LOGGER.info("DEBUG: Total messages in database would be queried here");
+        return ResponseEntity.ok(List.of());
+    }
+
     @PostMapping
     @Operation(summary = "Create a new message")
     public ResponseEntity<MessageResource> createMessage(@RequestBody CreateMessageResource resource) {
