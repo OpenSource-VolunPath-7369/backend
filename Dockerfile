@@ -32,5 +32,5 @@ EXPOSE 8080
 ENV PORT=8080
 
 # Ejecutar la aplicación
-ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar app.jar"]
 

@@ -4,9 +4,10 @@ nixPkgs = ["maven", "jdk17"]
 [phases.build]
 cmds = [
   "chmod +x mvnw || true",
-  "./mvnw clean package -DskipTests -B"
+  "./mvnw clean package -DskipTests -B",
+  "chmod +x start.sh || true"
 ]
 
 [phases.start]
-cmd = "java -Dserver.port=$PORT $JAVA_OPTS -jar target/*.jar"
+cmd = "./start.sh"
 
