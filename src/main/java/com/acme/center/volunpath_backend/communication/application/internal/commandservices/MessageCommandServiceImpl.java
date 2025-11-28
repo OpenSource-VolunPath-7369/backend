@@ -42,7 +42,9 @@ public class MessageCommandServiceImpl implements MessageCommandService {
         );
 
         messageRepository.save(message);
-        LOGGER.info("Message created: ID={}, From={}, To={}", message.getId(), command.senderId(), command.recipientId());
+        LOGGER.info("Message created: ID={}, From={} (senderId={}), To={} (recipientId={}), Content length={}", 
+            message.getId(), command.senderName(), command.senderId(), 
+            "recipient", command.recipientId(), command.content().length());
 
         // Create notification for the recipient
         try {
@@ -61,7 +63,8 @@ public class MessageCommandServiceImpl implements MessageCommandService {
             );
             
             notificationCommandService.handle(notificationCommand);
-            LOGGER.info("Notification created for user: {}", command.recipientId());
+            LOGGER.info("Notification created for recipient userId: {} (message recipientId: {})", 
+                command.recipientId(), command.recipientId());
         } catch (Exception e) {
             LOGGER.error("Error creating notification for message: {}", e.getMessage(), e);
             // Don't fail the message creation if notification fails

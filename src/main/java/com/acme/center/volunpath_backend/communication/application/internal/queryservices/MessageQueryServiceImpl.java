@@ -66,11 +66,13 @@ public class MessageQueryServiceImpl implements MessageQueryService {
         
         // Log first few messages for debugging
         if (!combinedMessages.isEmpty()) {
-            combinedMessages.stream().limit(3).forEach(msg -> {
-                LOGGER.info("Message ID: {}, Sender: {}, Recipient: {}, Content: {}", 
-                    msg.getId(), msg.getSenderId(), msg.getRecipientId(), 
+            combinedMessages.stream().limit(5).forEach(msg -> {
+                LOGGER.info("Message ID: {}, SenderId: {}, RecipientId: {}, SenderName: {}, Content preview: {}", 
+                    msg.getId(), msg.getSenderId(), msg.getRecipientId(), msg.getSenderName(),
                     msg.getContent().length() > 50 ? msg.getContent().substring(0, 50) + "..." : msg.getContent());
             });
+        } else {
+            LOGGER.warn("No messages found for userId: {} - Check if recipientId in messages matches this userId", query.userId());
         }
         
         // Return combined messages (more reliable)
