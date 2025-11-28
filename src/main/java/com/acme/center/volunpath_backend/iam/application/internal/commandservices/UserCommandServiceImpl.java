@@ -5,6 +5,7 @@ import com.acme.center.volunpath_backend.iam.application.internal.outboundservic
 import com.acme.center.volunpath_backend.iam.domain.model.aggregates.User;
 import com.acme.center.volunpath_backend.iam.domain.model.commands.SignInCommand;
 import com.acme.center.volunpath_backend.iam.domain.model.commands.SignUpCommand;
+import com.acme.center.volunpath_backend.iam.domain.model.entities.Role;
 import com.acme.center.volunpath_backend.iam.domain.services.UserCommandService;
 import com.acme.center.volunpath_backend.iam.infrastructure.persistence.jpa.repositories.RoleRepository;
 import com.acme.center.volunpath_backend.iam.infrastructure.persistence.jpa.repositories.UserRepository;
@@ -78,8 +79,18 @@ public class UserCommandServiceImpl implements UserCommandService {
                         // Get the Roles enum from the Role entity and find it in the database
                         var roleEnum = role.getName();
                         LOGGER.debug("Looking for role: {}", roleEnum);
-                        return roleRepository.findByName(roleEnum)
-                                .orElseThrow(() -> new RuntimeException("Role name not found: " + roleEnum));
+                        var foundRole = roleRepository.findByName(roleEnum);
+                        
+                        // If role doesn't exist, create it
+                        if (foundRole.isEmpty()) {
+                            LOGGER.warn("Role {} not found in database, creating it now", roleEnum);
+                            var newRole = new Role(roleEnum);
+                            roleRepository.save(newRole);
+                            LOGGER.info("Created missing role: {}", roleEnum);
+                            return newRole;
+                        }
+                        
+                        return foundRole.get();
                     })
                     .toList();
             
