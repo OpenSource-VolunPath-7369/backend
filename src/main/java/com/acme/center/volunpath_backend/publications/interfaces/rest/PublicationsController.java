@@ -6,8 +6,10 @@ import com.acme.center.volunpath_backend.publications.domain.model.queries.GetPu
 import com.acme.center.volunpath_backend.publications.domain.services.PublicationCommandService;
 import com.acme.center.volunpath_backend.publications.domain.services.PublicationQueryService;
 import com.acme.center.volunpath_backend.publications.interfaces.rest.resources.CreatePublicationResource;
+import com.acme.center.volunpath_backend.publications.interfaces.rest.resources.UpdatePublicationResource;
 import com.acme.center.volunpath_backend.publications.interfaces.rest.resources.PublicationResource;
 import com.acme.center.volunpath_backend.publications.interfaces.rest.transform.CreatePublicationCommandFromResourceAssembler;
+import com.acme.center.volunpath_backend.publications.interfaces.rest.transform.UpdatePublicationCommandFromResourceAssembler;
 import com.acme.center.volunpath_backend.publications.interfaces.rest.transform.PublicationResourceFromEntityAssembler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -76,6 +78,18 @@ public class PublicationsController {
         }
         var publicationResource = PublicationResourceFromEntityAssembler.toResourceFromEntity(publication.get());
         return new ResponseEntity<>(publicationResource, HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update a publication")
+    public ResponseEntity<PublicationResource> updatePublication(@PathVariable Long id, @RequestBody UpdatePublicationResource resource) {
+        var command = UpdatePublicationCommandFromResourceAssembler.toCommandFromResource(id, resource);
+        var publication = publicationCommandService.handle(command);
+        if (publication.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        var publicationResource = PublicationResourceFromEntityAssembler.toResourceFromEntity(publication.get());
+        return ResponseEntity.ok(publicationResource);
     }
 
     @PutMapping("/{id}/like")
