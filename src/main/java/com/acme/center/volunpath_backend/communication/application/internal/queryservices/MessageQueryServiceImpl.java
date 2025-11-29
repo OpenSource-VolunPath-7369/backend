@@ -5,12 +5,17 @@ import com.acme.center.volunpath_backend.communication.domain.model.queries.GetM
 import com.acme.center.volunpath_backend.communication.domain.model.queries.GetMessagesByUserIdQuery;
 import com.acme.center.volunpath_backend.communication.domain.services.MessageQueryService;
 import com.acme.center.volunpath_backend.communication.infrastructure.persistence.jpa.repositories.MessageRepository;
+import com.acme.center.volunpath_backend.volunteers.domain.model.aggregates.Volunteer;
+import com.acme.center.volunpath_backend.volunteers.infrastructure.persistence.jpa.repositories.VolunteerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Message Query Service Implementation
@@ -19,9 +24,13 @@ import java.util.Optional;
 public class MessageQueryServiceImpl implements MessageQueryService {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageQueryServiceImpl.class);
     private final MessageRepository messageRepository;
+    private final VolunteerRepository volunteerRepository;
 
-    public MessageQueryServiceImpl(MessageRepository messageRepository) {
+    public MessageQueryServiceImpl(
+            MessageRepository messageRepository,
+            VolunteerRepository volunteerRepository) {
         this.messageRepository = messageRepository;
+        this.volunteerRepository = volunteerRepository;
     }
 
     @Override
@@ -33,36 +42,54 @@ public class MessageQueryServiceImpl implements MessageQueryService {
     public List<Message> handle(GetMessagesByUserIdQuery query) {
         LOGGER.info("Querying messages for userId: {}", query.userId());
         
-        // Try separate queries first to debug
-        List<Message> recipientMessages = messageRepository.findByRecipientId(query.userId());
-        LOGGER.info("Found {} messages as recipient for userId: {}", recipientMessages.size(), query.userId());
+        // Check if this userId corresponds to a volunteer
+        // If so, we need to search by both userId and volunteer.id
+        Optional<Volunteer> volunteer = volunteerRepository.findByUserId(query.userId());
+        List<Long> idsToSearch = new ArrayList<>();
+        idsToSearch.add(query.userId());
         
-        List<Message> senderMessages = messageRepository.findBySenderId(query.userId());
-        LOGGER.info("Found {} messages as sender for userId: {}", senderMessages.size(), query.userId());
-        
-        // Combine both lists and remove duplicates
-        java.util.Set<Long> seenIds = new java.util.HashSet<>();
-        List<Message> combinedMessages = new java.util.ArrayList<>();
-        
-        for (Message msg : recipientMessages) {
-            if (!seenIds.contains(msg.getId())) {
-                combinedMessages.add(msg);
-                seenIds.add(msg.getId());
+        if (volunteer.isPresent()) {
+            Long volunteerId = volunteer.get().getId();
+            LOGGER.info("User {} is a volunteer with volunteer.id: {}", query.userId(), volunteerId);
+            // Only add volunteerId if it's different from userId
+            if (!volunteerId.equals(query.userId())) {
+                idsToSearch.add(volunteerId);
+                LOGGER.info("Will search messages for both userId: {} and volunteerId: {}", query.userId(), volunteerId);
             }
         }
         
-        for (Message msg : senderMessages) {
-            if (!seenIds.contains(msg.getId())) {
-                combinedMessages.add(msg);
-                seenIds.add(msg.getId());
+        // Search messages for all relevant IDs
+        Set<Long> seenIds = new HashSet<>();
+        List<Message> combinedMessages = new ArrayList<>();
+        
+        for (Long id : idsToSearch) {
+            // Messages where user is recipient
+            List<Message> recipientMessages = messageRepository.findByRecipientId(id);
+            LOGGER.info("Found {} messages as recipient for id: {}", recipientMessages.size(), id);
+            
+            // Messages where user is sender
+            List<Message> senderMessages = messageRepository.findBySenderId(id);
+            LOGGER.info("Found {} messages as sender for id: {}", senderMessages.size(), id);
+            
+            // Add recipient messages (avoiding duplicates)
+            for (Message msg : recipientMessages) {
+                if (!seenIds.contains(msg.getId())) {
+                    combinedMessages.add(msg);
+                    seenIds.add(msg.getId());
+                }
+            }
+            
+            // Add sender messages (avoiding duplicates)
+            for (Message msg : senderMessages) {
+                if (!seenIds.contains(msg.getId())) {
+                    combinedMessages.add(msg);
+                    seenIds.add(msg.getId());
+                }
             }
         }
         
-        LOGGER.info("Combined total: {} unique messages for userId: {}", combinedMessages.size(), query.userId());
-        
-        // Also try the original method for comparison
-        List<Message> orMethodMessages = messageRepository.findByRecipientIdOrSenderId(query.userId(), query.userId());
-        LOGGER.info("findByRecipientIdOrSenderId returned {} messages", orMethodMessages.size());
+        LOGGER.info("Combined total: {} unique messages for userId: {} (searched {} IDs)", 
+            combinedMessages.size(), query.userId(), idsToSearch.size());
         
         // Log first few messages for debugging
         if (!combinedMessages.isEmpty()) {
@@ -72,10 +99,9 @@ public class MessageQueryServiceImpl implements MessageQueryService {
                     msg.getContent().length() > 50 ? msg.getContent().substring(0, 50) + "..." : msg.getContent());
             });
         } else {
-            LOGGER.warn("No messages found for userId: {} - Check if recipientId in messages matches this userId", query.userId());
+            LOGGER.warn("No messages found for userId: {} (searched IDs: {})", query.userId(), idsToSearch);
         }
         
-        // Return combined messages (more reliable)
         return combinedMessages;
     }
 }
