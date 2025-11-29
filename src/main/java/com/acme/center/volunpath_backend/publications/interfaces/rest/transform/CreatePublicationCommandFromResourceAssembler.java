@@ -14,7 +14,12 @@ public class CreatePublicationCommandFromResourceAssembler {
                 resource.image(),
                 resource.organizationId(),
                 resource.tags(),
-                resource.status()
+                resource.status(),
+                resource.scheduledDate(),
+                resource.scheduledTime(),
+                resource.location(),
+                resource.maxVolunteers(),
+                resource.currentVolunteers()
         );
     }
 }

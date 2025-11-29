@@ -18,6 +18,11 @@ public record PublicationResource(
     Integer likes,
     Publication.PublicationStatus status,
     List<String> tags,
+    String scheduledDate,
+    String scheduledTime,
+    String location,
+    Integer maxVolunteers,
+    Integer currentVolunteers,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {

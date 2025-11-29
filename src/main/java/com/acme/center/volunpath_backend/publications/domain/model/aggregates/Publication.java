@@ -47,10 +47,30 @@ public class Publication extends AuditableAbstractAggregateRoot<Publication> {
     @Column(name = "tag")
     private List<String> tags = new ArrayList<>();
 
+    @Size(max = 50)
+    @Column(name = "scheduled_date")
+    private String scheduledDate; // Format: YYYY-MM-DD
+
+    @Size(max = 10)
+    @Column(name = "scheduled_time")
+    private String scheduledTime; // Format: HH:MM
+
+    @Size(max = 200)
+    @Column(name = "location")
+    private String location;
+
+    @Column(name = "max_volunteers")
+    private Integer maxVolunteers = 0;
+
+    @Column(name = "current_volunteers")
+    private Integer currentVolunteers = 0;
+
     public Publication() {
         this.likes = 0;
         this.status = PublicationStatus.DRAFT;
         this.tags = new ArrayList<>();
+        this.maxVolunteers = 0;
+        this.currentVolunteers = 0;
     }
 
     public Publication(String title, String description, String image, Long organizationId) {

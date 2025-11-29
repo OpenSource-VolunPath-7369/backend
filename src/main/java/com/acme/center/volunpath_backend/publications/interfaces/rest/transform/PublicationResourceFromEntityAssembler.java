@@ -17,6 +17,11 @@ public class PublicationResourceFromEntityAssembler {
                 publication.getLikes(),
                 publication.getStatus(),
                 publication.getTags(),
+                publication.getScheduledDate(),
+                publication.getScheduledTime(),
+                publication.getLocation(),
+                publication.getMaxVolunteers(),
+                publication.getCurrentVolunteers(),
                 publication.getCreatedAt(),
                 publication.getUpdatedAt()
         );

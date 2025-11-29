@@ -13,7 +13,12 @@ public record CreatePublicationCommand(
     String image,
     Long organizationId,
     List<String> tags,
-    Publication.PublicationStatus status
+    Publication.PublicationStatus status,
+    String scheduledDate,
+    String scheduledTime,
+    String location,
+    Integer maxVolunteers,
+    Integer currentVolunteers
 ) {
 }
 

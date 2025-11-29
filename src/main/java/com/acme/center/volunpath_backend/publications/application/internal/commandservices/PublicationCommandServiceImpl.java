@@ -37,6 +37,23 @@ public class PublicationCommandServiceImpl implements PublicationCommandService 
             publication.setStatus(command.status());
         }
 
+        // Set new fields
+        if (command.scheduledDate() != null) {
+            publication.setScheduledDate(command.scheduledDate());
+        }
+        if (command.scheduledTime() != null) {
+            publication.setScheduledTime(command.scheduledTime());
+        }
+        if (command.location() != null) {
+            publication.setLocation(command.location());
+        }
+        if (command.maxVolunteers() != null) {
+            publication.setMaxVolunteers(command.maxVolunteers());
+        }
+        if (command.currentVolunteers() != null) {
+            publication.setCurrentVolunteers(command.currentVolunteers());
+        }
+
         publicationRepository.save(publication);
         return Optional.of(publication);
     }
@@ -55,6 +72,21 @@ public class PublicationCommandServiceImpl implements PublicationCommandService 
         }
         if (command.status() != null) {
             publication.setStatus(command.status());
+        }
+        if (command.scheduledDate() != null) {
+            publication.setScheduledDate(command.scheduledDate());
+        }
+        if (command.scheduledTime() != null) {
+            publication.setScheduledTime(command.scheduledTime());
+        }
+        if (command.location() != null) {
+            publication.setLocation(command.location());
+        }
+        if (command.maxVolunteers() != null) {
+            publication.setMaxVolunteers(command.maxVolunteers());
+        }
+        if (command.currentVolunteers() != null) {
+            publication.setCurrentVolunteers(command.currentVolunteers());
         }
 
         publicationRepository.save(publication);
