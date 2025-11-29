@@ -42,9 +42,14 @@ public class MessageCommandServiceImpl implements MessageCommandService {
         );
 
         messageRepository.save(message);
-        LOGGER.info("Message created: ID={}, From={} (senderId={}), To={} (recipientId={}), Content length={}", 
+        LOGGER.info("Message created: ID={}, From={} (senderId={}), To={} (recipientId={}), Content length={}, SenderOrganization={}", 
             message.getId(), command.senderName(), command.senderId(), 
-            "recipient", command.recipientId(), command.content().length());
+            "recipient", command.recipientId(), command.content().length(), command.senderOrganization());
+        
+        // Log detailed message information for debugging
+        LOGGER.info("Message details - ID: {}, SenderId: {}, RecipientId: {}, SenderName: {}, Content preview: {}", 
+            message.getId(), message.getSenderId(), message.getRecipientId(), message.getSenderName(),
+            message.getContent().length() > 100 ? message.getContent().substring(0, 100) + "..." : message.getContent());
 
         // Create notification for the recipient
         try {
