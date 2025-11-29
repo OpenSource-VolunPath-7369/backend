@@ -5,6 +5,8 @@ import com.acme.center.volunpath_backend.communication.domain.model.queries.GetM
 import com.acme.center.volunpath_backend.communication.domain.model.queries.GetMessagesByUserIdQuery;
 import com.acme.center.volunpath_backend.communication.domain.services.MessageQueryService;
 import com.acme.center.volunpath_backend.communication.infrastructure.persistence.jpa.repositories.MessageRepository;
+import com.acme.center.volunpath_backend.organizations.domain.model.aggregates.Organization;
+import com.acme.center.volunpath_backend.organizations.infrastructure.persistence.jpa.repositories.OrganizationRepository;
 import com.acme.center.volunpath_backend.volunteers.domain.model.aggregates.Volunteer;
 import com.acme.center.volunpath_backend.volunteers.infrastructure.persistence.jpa.repositories.VolunteerRepository;
 import org.slf4j.Logger;
@@ -25,12 +27,15 @@ public class MessageQueryServiceImpl implements MessageQueryService {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageQueryServiceImpl.class);
     private final MessageRepository messageRepository;
     private final VolunteerRepository volunteerRepository;
+    private final OrganizationRepository organizationRepository;
 
     public MessageQueryServiceImpl(
             MessageRepository messageRepository,
-            VolunteerRepository volunteerRepository) {
+            VolunteerRepository volunteerRepository,
+            OrganizationRepository organizationRepository) {
         this.messageRepository = messageRepository;
         this.volunteerRepository = volunteerRepository;
+        this.organizationRepository = organizationRepository;
     }
 
     @Override
@@ -42,12 +47,12 @@ public class MessageQueryServiceImpl implements MessageQueryService {
     public List<Message> handle(GetMessagesByUserIdQuery query) {
         LOGGER.info("Querying messages for userId: {}", query.userId());
         
-        // Check if this userId corresponds to a volunteer
-        // If so, we need to search by both userId and volunteer.id
-        Optional<Volunteer> volunteer = volunteerRepository.findByUserId(query.userId());
         List<Long> idsToSearch = new ArrayList<>();
         idsToSearch.add(query.userId());
         
+        // Check if this userId corresponds to a volunteer
+        // If so, we need to search by both userId and volunteer.id
+        Optional<Volunteer> volunteer = volunteerRepository.findByUserId(query.userId());
         if (volunteer.isPresent()) {
             Long volunteerId = volunteer.get().getId();
             LOGGER.info("User {} is a volunteer with volunteer.id: {}", query.userId(), volunteerId);
@@ -55,6 +60,19 @@ public class MessageQueryServiceImpl implements MessageQueryService {
             if (!volunteerId.equals(query.userId())) {
                 idsToSearch.add(volunteerId);
                 LOGGER.info("Will search messages for both userId: {} and volunteerId: {}", query.userId(), volunteerId);
+            }
+        }
+        
+        // Check if this userId corresponds to an organization
+        // If so, we need to search by both userId and organization.id
+        Optional<Organization> organization = organizationRepository.findByUserId(query.userId());
+        if (organization.isPresent()) {
+            Long organizationId = organization.get().getId();
+            LOGGER.info("User {} is an organization with organization.id: {}", query.userId(), organizationId);
+            // Only add organizationId if it's different from userId
+            if (!organizationId.equals(query.userId())) {
+                idsToSearch.add(organizationId);
+                LOGGER.info("Will search messages for both userId: {} and organizationId: {}", query.userId(), organizationId);
             }
         }
         
