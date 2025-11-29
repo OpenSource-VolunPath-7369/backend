@@ -22,6 +22,8 @@ public class WebSecurityConfiguration {
         http
             .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // Allow OPTIONS requests for CORS preflight
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/authentication/**").permitAll()
                         .requestMatchers("/api/v1/users/**").permitAll() // Permitir acceso a usuarios para desarrollo
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**").permitAll()
