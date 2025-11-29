@@ -5,6 +5,8 @@ import com.acme.center.volunpath_backend.publications.domain.model.commands.Crea
 import com.acme.center.volunpath_backend.publications.domain.model.commands.UpdatePublicationCommand;
 import com.acme.center.volunpath_backend.publications.domain.services.PublicationCommandService;
 import com.acme.center.volunpath_backend.publications.infrastructure.persistence.jpa.repositories.PublicationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -14,6 +16,7 @@ import java.util.Optional;
  */
 @Service
 public class PublicationCommandServiceImpl implements PublicationCommandService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PublicationCommandServiceImpl.class);
     private final PublicationRepository publicationRepository;
 
     public PublicationCommandServiceImpl(PublicationRepository publicationRepository) {
@@ -38,14 +41,21 @@ public class PublicationCommandServiceImpl implements PublicationCommandService 
         }
 
         // Set new fields
-        if (command.scheduledDate() != null) {
-            publication.setScheduledDate(command.scheduledDate());
+        if (command.scheduledDate() != null && !command.scheduledDate().trim().isEmpty()) {
+            publication.setScheduledDate(command.scheduledDate().trim());
+            LOGGER.info("Setting scheduledDate: {}", command.scheduledDate());
+        } else {
+            LOGGER.warn("scheduledDate is null or empty in CreatePublicationCommand");
         }
-        if (command.scheduledTime() != null) {
-            publication.setScheduledTime(command.scheduledTime());
+        if (command.scheduledTime() != null && !command.scheduledTime().trim().isEmpty()) {
+            publication.setScheduledTime(command.scheduledTime().trim());
+            LOGGER.info("Setting scheduledTime: {}", command.scheduledTime());
+        } else {
+            LOGGER.warn("scheduledTime is null or empty in CreatePublicationCommand");
         }
-        if (command.location() != null) {
-            publication.setLocation(command.location());
+        if (command.location() != null && !command.location().trim().isEmpty()) {
+            publication.setLocation(command.location().trim());
+            LOGGER.info("Setting location: {}", command.location());
         }
         if (command.maxVolunteers() != null) {
             publication.setMaxVolunteers(command.maxVolunteers());
@@ -54,7 +64,11 @@ public class PublicationCommandServiceImpl implements PublicationCommandService 
             publication.setCurrentVolunteers(command.currentVolunteers());
         }
 
+        LOGGER.info("Saving publication with scheduledDate={}, scheduledTime={}, location={}", 
+            publication.getScheduledDate(), publication.getScheduledTime(), publication.getLocation());
         publicationRepository.save(publication);
+        LOGGER.info("Publication saved with ID: {}, scheduledDate: {}, scheduledTime: {}", 
+            publication.getId(), publication.getScheduledDate(), publication.getScheduledTime());
         return Optional.of(publication);
     }
 
@@ -73,14 +87,21 @@ public class PublicationCommandServiceImpl implements PublicationCommandService 
         if (command.status() != null) {
             publication.setStatus(command.status());
         }
-        if (command.scheduledDate() != null) {
-            publication.setScheduledDate(command.scheduledDate());
+        if (command.scheduledDate() != null && !command.scheduledDate().trim().isEmpty()) {
+            publication.setScheduledDate(command.scheduledDate().trim());
+            LOGGER.info("Updating scheduledDate to: {}", command.scheduledDate());
+        } else if (command.scheduledDate() != null) {
+            LOGGER.warn("scheduledDate is empty string in UpdatePublicationCommand, keeping existing value");
         }
-        if (command.scheduledTime() != null) {
-            publication.setScheduledTime(command.scheduledTime());
+        if (command.scheduledTime() != null && !command.scheduledTime().trim().isEmpty()) {
+            publication.setScheduledTime(command.scheduledTime().trim());
+            LOGGER.info("Updating scheduledTime to: {}", command.scheduledTime());
+        } else if (command.scheduledTime() != null) {
+            LOGGER.warn("scheduledTime is empty string in UpdatePublicationCommand, keeping existing value");
         }
-        if (command.location() != null) {
-            publication.setLocation(command.location());
+        if (command.location() != null && !command.location().trim().isEmpty()) {
+            publication.setLocation(command.location().trim());
+            LOGGER.info("Updating location to: {}", command.location());
         }
         if (command.maxVolunteers() != null) {
             publication.setMaxVolunteers(command.maxVolunteers());
@@ -89,7 +110,11 @@ public class PublicationCommandServiceImpl implements PublicationCommandService 
             publication.setCurrentVolunteers(command.currentVolunteers());
         }
 
+        LOGGER.info("Saving updated publication ID={} with scheduledDate={}, scheduledTime={}, location={}", 
+            publication.getId(), publication.getScheduledDate(), publication.getScheduledTime(), publication.getLocation());
         publicationRepository.save(publication);
+        LOGGER.info("Publication updated successfully. ID: {}, scheduledDate: {}, scheduledTime: {}", 
+            publication.getId(), publication.getScheduledDate(), publication.getScheduledTime());
         return Optional.of(publication);
     }
 
