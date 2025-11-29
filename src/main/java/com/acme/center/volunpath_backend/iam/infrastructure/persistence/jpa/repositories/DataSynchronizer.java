@@ -141,7 +141,7 @@ public class DataSynchronizer implements CommandLineRunner {
                                 "",
                                 user.getEmail(), // phone
                                 "", // address
-                                new java.util.Date().getYear() + 1900, // foundedYear
+                                java.time.Year.now().getValue(), // foundedYear
                                 user.getId()
                         );
                         organizationRepository.save(organization);
