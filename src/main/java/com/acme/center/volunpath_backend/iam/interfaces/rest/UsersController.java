@@ -2,8 +2,11 @@ package com.acme.center.volunpath_backend.iam.interfaces.rest;
 
 import com.acme.center.volunpath_backend.iam.domain.model.queries.GetAllUsersQuery;
 import com.acme.center.volunpath_backend.iam.domain.model.queries.GetUserByIdQuery;
+import com.acme.center.volunpath_backend.iam.domain.services.UserCommandService;
 import com.acme.center.volunpath_backend.iam.domain.services.UserQueryService;
+import com.acme.center.volunpath_backend.iam.interfaces.rest.resources.UpdateUserResource;
 import com.acme.center.volunpath_backend.iam.interfaces.rest.resources.UserResource;
+import com.acme.center.volunpath_backend.iam.interfaces.rest.transform.UpdateUserCommandFromResourceAssembler;
 import com.acme.center.volunpath_backend.iam.interfaces.rest.transform.UserResourceFromEntityAssembler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,9 +24,11 @@ import java.util.List;
 @Tag(name = "Users", description = "User Management Endpoints")
 public class UsersController {
     private final UserQueryService userQueryService;
+    private final UserCommandService userCommandService;
 
-    public UsersController(UserQueryService userQueryService) {
+    public UsersController(UserQueryService userQueryService, UserCommandService userCommandService) {
         this.userQueryService = userQueryService;
+        this.userCommandService = userCommandService;
     }
 
     @GetMapping
@@ -45,6 +50,18 @@ public class UsersController {
         }
         var resource = UserResourceFromEntityAssembler.toResourceFromEntity(user.get());
         return ResponseEntity.ok(resource);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update a user")
+    public ResponseEntity<UserResource> updateUser(@PathVariable Long id, @RequestBody UpdateUserResource resource) {
+        var command = UpdateUserCommandFromResourceAssembler.toCommandFromResource(id, resource);
+        var user = userCommandService.handle(command);
+        if (user.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        var userResource = UserResourceFromEntityAssembler.toResourceFromEntity(user.get());
+        return ResponseEntity.ok(userResource);
     }
 }
 

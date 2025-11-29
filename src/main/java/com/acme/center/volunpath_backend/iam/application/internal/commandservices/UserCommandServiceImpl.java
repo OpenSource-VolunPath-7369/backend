@@ -5,6 +5,7 @@ import com.acme.center.volunpath_backend.iam.application.internal.outboundservic
 import com.acme.center.volunpath_backend.iam.domain.model.aggregates.User;
 import com.acme.center.volunpath_backend.iam.domain.model.commands.SignInCommand;
 import com.acme.center.volunpath_backend.iam.domain.model.commands.SignUpCommand;
+import com.acme.center.volunpath_backend.iam.domain.model.commands.UpdateUserCommand;
 import com.acme.center.volunpath_backend.iam.domain.model.entities.Role;
 import com.acme.center.volunpath_backend.iam.domain.services.UserCommandService;
 import com.acme.center.volunpath_backend.iam.infrastructure.persistence.jpa.repositories.RoleRepository;
@@ -113,6 +114,46 @@ public class UserCommandServiceImpl implements UserCommandService {
         } catch (Exception e) {
             LOGGER.error("Error during sign-up: {}", e.getMessage(), e);
             throw new RuntimeException("Error creating user: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public Optional<User> handle(UpdateUserCommand command) {
+        try {
+            LOGGER.info("Processing update for user ID: {}", command.userId());
+            
+            var user = userRepository.findById(command.userId());
+            if (user.isEmpty()) {
+                LOGGER.warn("User not found with ID: {}", command.userId());
+                throw new RuntimeException("User not found");
+            }
+            
+            var existingUser = user.get();
+            
+            // Update only provided fields (non-null values)
+            if (command.name() != null && !command.name().trim().isEmpty()) {
+                existingUser.setName(command.name());
+            }
+            if (command.email() != null && !command.email().trim().isEmpty()) {
+                // Check if email is already taken by another user
+                var userWithEmail = userRepository.findByEmail(command.email());
+                if (userWithEmail.isPresent() && !userWithEmail.get().getId().equals(command.userId())) {
+                    throw new RuntimeException("Email already exists");
+                }
+                existingUser.setEmail(command.email());
+            }
+            if (command.avatar() != null) {
+                existingUser.setAvatar(command.avatar());
+            }
+            
+            LOGGER.debug("Saving updated user to database");
+            userRepository.save(existingUser);
+            LOGGER.info("User updated successfully: ID={}, Name={}", command.userId(), existingUser.getName());
+            
+            return userRepository.findById(command.userId());
+        } catch (Exception e) {
+            LOGGER.error("Error during user update: {}", e.getMessage(), e);
+            throw new RuntimeException("Error updating user: " + e.getMessage(), e);
         }
     }
 }
