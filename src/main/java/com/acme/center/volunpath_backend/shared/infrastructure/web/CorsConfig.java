@@ -5,9 +5,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -33,9 +37,49 @@ public class CorsConfig {
     @Value("${cors.allow-credentials:true}")
     private boolean allowCredentials;
 
+    /**
+     * CORS Filter with highest priority to handle preflight requests
+     */
     @Bean
+    @Order(Ordered.HIGHEST_PRECEDENCE)
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration config = createCorsConfiguration();
+        
+        // Apply CORS configuration to all paths
+        source.registerCorsConfiguration("/**", config);
+        
+        LOGGER.info("CORS Filter configured successfully for paths: /** with highest priority");
+        
+        return new CorsFilter(source);
+    }
+    
+    /**
+     * WebMvcConfigurer to handle CORS at controller level
+     */
+    @Bean
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                CorsConfiguration config = createCorsConfiguration();
+                registry.addMapping("/**")
+                        .allowedOrigins(config.getAllowedOrigins().toArray(new String[0]))
+                        .allowedMethods(config.getAllowedMethods().toArray(new String[0]))
+                        .allowedHeaders(config.getAllowedHeaders().toArray(new String[0]))
+                        .exposedHeaders(config.getExposedHeaders().toArray(new String[0]))
+                        .allowCredentials(config.getAllowCredentials())
+                        .maxAge(3600); // Cache preflight for 1 hour
+                
+                LOGGER.info("CORS WebMvcConfigurer configured successfully");
+            }
+        };
+    }
+    
+    /**
+     * Create CORS configuration from properties
+     */
+    private CorsConfiguration createCorsConfiguration() {
         CorsConfiguration config = new CorsConfiguration();
         
         // Parse and trim origins (remove any whitespace)
@@ -70,14 +114,12 @@ public class CorsConfig {
         LOGGER.info("CORS Configuration - Allow Credentials: {}", allowCredentials);
         
         // Expose headers
-        config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         
-        // Apply CORS configuration to all paths
-        source.registerCorsConfiguration("/**", config);
+        // Set max age for preflight cache
+        config.setMaxAge(3600L);
         
-        LOGGER.info("CORS Filter configured successfully for paths: /**");
-        
-        return new CorsFilter(source);
+        return config;
     }
 }
 
