@@ -7,9 +7,14 @@ import com.acme.center.volunpath_backend.iam.domain.model.commands.SignInCommand
 import com.acme.center.volunpath_backend.iam.domain.model.commands.SignUpCommand;
 import com.acme.center.volunpath_backend.iam.domain.model.commands.UpdateUserCommand;
 import com.acme.center.volunpath_backend.iam.domain.model.entities.Role;
+import com.acme.center.volunpath_backend.iam.domain.model.valueobjects.Roles;
 import com.acme.center.volunpath_backend.iam.domain.services.UserCommandService;
 import com.acme.center.volunpath_backend.iam.infrastructure.persistence.jpa.repositories.RoleRepository;
 import com.acme.center.volunpath_backend.iam.infrastructure.persistence.jpa.repositories.UserRepository;
+import com.acme.center.volunpath_backend.organizations.domain.model.aggregates.Organization;
+import com.acme.center.volunpath_backend.organizations.infrastructure.persistence.jpa.repositories.OrganizationRepository;
+import com.acme.center.volunpath_backend.volunteers.domain.model.aggregates.Volunteer;
+import com.acme.center.volunpath_backend.volunteers.infrastructure.persistence.jpa.repositories.VolunteerRepository;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,16 +32,22 @@ public class UserCommandServiceImpl implements UserCommandService {
     private final HashingService hashingService;
     private final TokenService tokenService;
     private final RoleRepository roleRepository;
+    private final VolunteerRepository volunteerRepository;
+    private final OrganizationRepository organizationRepository;
 
     public UserCommandServiceImpl(
             UserRepository userRepository,
             HashingService hashingService,
             TokenService tokenService,
-            RoleRepository roleRepository) {
+            RoleRepository roleRepository,
+            VolunteerRepository volunteerRepository,
+            OrganizationRepository organizationRepository) {
         this.userRepository = userRepository;
         this.hashingService = hashingService;
         this.tokenService = tokenService;
         this.roleRepository = roleRepository;
+        this.volunteerRepository = volunteerRepository;
+        this.organizationRepository = organizationRepository;
     }
 
     @Override
@@ -110,7 +121,13 @@ public class UserCommandServiceImpl implements UserCommandService {
             userRepository.save(user);
             LOGGER.info("User created successfully: {}", command.username());
             
-            return userRepository.findByUsername(command.username());
+            // After saving user, create corresponding Volunteer or Organization record
+            var savedUser = userRepository.findByUsername(command.username());
+            if (savedUser.isPresent()) {
+                createVolunteerOrOrganizationIfNeeded(savedUser.get());
+            }
+            
+            return savedUser;
         } catch (Exception e) {
             LOGGER.error("Error during sign-up: {}", e.getMessage(), e);
             throw new RuntimeException("Error creating user: " + e.getMessage(), e);
@@ -154,6 +171,85 @@ public class UserCommandServiceImpl implements UserCommandService {
         } catch (Exception e) {
             LOGGER.error("Error during user update: {}", e.getMessage(), e);
             throw new RuntimeException("Error updating user: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Creates Volunteer or Organization record if user has corresponding role
+     */
+    private void createVolunteerOrOrganizationIfNeeded(User user) {
+        try {
+            // Check if user has VOLUNTEER role
+            boolean hasVolunteerRole = user.getRoles().stream()
+                    .map(Role::getName)
+                    .anyMatch(role -> role.equals(Roles.ROLE_VOLUNTEER));
+            
+            // Check if user has ORGANIZATION_ADMIN role
+            boolean hasOrganizationRole = user.getRoles().stream()
+                    .map(Role::getName)
+                    .anyMatch(role -> role.equals(Roles.ROLE_ORGANIZATION_ADMIN));
+            
+            // Create Volunteer record if user has VOLUNTEER role
+            if (hasVolunteerRole) {
+                var existingVolunteer = volunteerRepository.findByUserId(user.getId());
+                if (existingVolunteer.isEmpty()) {
+                    var volunteerByEmail = volunteerRepository.findByEmail(user.getEmail());
+                    if (volunteerByEmail.isEmpty()) {
+                        var volunteer = new Volunteer(
+                                user.getName(),
+                                user.getEmail(),
+                                user.getAvatar(),
+                                "",
+                                "",
+                                user.getId()
+                        );
+                        volunteerRepository.save(volunteer);
+                        LOGGER.info("✅ Automatically created Volunteer record for new user ID: {}, email: {}", 
+                            user.getId(), user.getEmail());
+                    } else {
+                        // Link existing volunteer to user
+                        var existing = volunteerByEmail.get();
+                        existing.setUserId(user.getId());
+                        volunteerRepository.save(existing);
+                        LOGGER.info("✅ Linked existing Volunteer to new user ID: {}, email: {}", 
+                            user.getId(), user.getEmail());
+                    }
+                }
+            }
+            
+            // Create Organization record if user has ORGANIZATION_ADMIN role
+            if (hasOrganizationRole) {
+                var existingOrganization = organizationRepository.findByUserId(user.getId());
+                if (existingOrganization.isEmpty()) {
+                    var organizationByEmail = organizationRepository.findByEmail(user.getEmail());
+                    if (organizationByEmail.isEmpty()) {
+                        var organization = new Organization(
+                                user.getName(),
+                                user.getEmail(),
+                                user.getAvatar(),
+                                "",
+                                "",
+                                "",
+                                "",
+                                java.time.Year.now().getValue(),
+                                user.getId()
+                        );
+                        organizationRepository.save(organization);
+                        LOGGER.info("✅ Automatically created Organization record for new user ID: {}, email: {}", 
+                            user.getId(), user.getEmail());
+                    } else {
+                        // Link existing organization to user
+                        var existing = organizationByEmail.get();
+                        existing.setUserId(user.getId());
+                        organizationRepository.save(existing);
+                        LOGGER.info("✅ Linked existing Organization to new user ID: {}, email: {}", 
+                            user.getId(), user.getEmail());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error creating Volunteer/Organization for user ID: {}", user.getId(), e);
+            // Don't fail user creation if this fails
         }
     }
 }
