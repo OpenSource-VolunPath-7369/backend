@@ -22,13 +22,59 @@ public class VolunteerCommandServiceImpl implements VolunteerCommandService {
 
     @Override
     public Optional<Volunteer> handle(CreateVolunteerCommand command) {
-        if (volunteerRepository.existsByEmail(command.email())) {
-            throw new RuntimeException("Volunteer with this email already exists");
+        // Check if volunteer already exists by userId (created automatically by backend)
+        if (command.userId() != null) {
+            var existingByUserId = volunteerRepository.findByUserId(command.userId());
+            if (existingByUserId.isPresent()) {
+                // Update existing volunteer with additional data from frontend
+                var volunteer = existingByUserId.get();
+                if (command.bio() != null && !command.bio().isEmpty()) {
+                    volunteer.setBio(command.bio());
+                }
+                if (command.location() != null && !command.location().isEmpty()) {
+                    volunteer.setLocation(command.location());
+                }
+                if (command.skills() != null && !command.skills().isEmpty()) {
+                    volunteer.getSkills().clear();
+                    volunteer.addSkills(command.skills());
+                }
+                if (command.avatar() != null && !command.avatar().isEmpty()) {
+                    volunteer.setAvatar(command.avatar());
+                }
+                volunteerRepository.save(volunteer);
+                return Optional.of(volunteer);
+            }
         }
-        if (command.userId() != null && volunteerRepository.existsByUserId(command.userId())) {
-            throw new RuntimeException("Volunteer with this user ID already exists");
+        
+        // Check if volunteer exists by email
+        if (volunteerRepository.existsByEmail(command.email())) {
+            // If exists by email, link it to the userId if provided
+            var existingByEmail = volunteerRepository.findByEmail(command.email());
+            if (existingByEmail.isPresent()) {
+                var volunteer = existingByEmail.get();
+                if (command.userId() != null && volunteer.getUserId() == null) {
+                    volunteer.setUserId(command.userId());
+                }
+                // Update with additional data
+                if (command.bio() != null && !command.bio().isEmpty()) {
+                    volunteer.setBio(command.bio());
+                }
+                if (command.location() != null && !command.location().isEmpty()) {
+                    volunteer.setLocation(command.location());
+                }
+                if (command.skills() != null && !command.skills().isEmpty()) {
+                    volunteer.getSkills().clear();
+                    volunteer.addSkills(command.skills());
+                }
+                if (command.avatar() != null && !command.avatar().isEmpty()) {
+                    volunteer.setAvatar(command.avatar());
+                }
+                volunteerRepository.save(volunteer);
+                return Optional.of(volunteer);
+            }
         }
 
+        // Create new volunteer if it doesn't exist
         var volunteer = new Volunteer(
                 command.name(),
                 command.email(),
