@@ -111,13 +111,20 @@ public class MessageQueryServiceImpl implements MessageQueryService {
         
         // Log first few messages for debugging
         if (!combinedMessages.isEmpty()) {
-            combinedMessages.stream().limit(5).forEach(msg -> {
-                LOGGER.info("Message ID: {}, SenderId: {}, RecipientId: {}, SenderName: {}, Content preview: {}", 
-                    msg.getId(), msg.getSenderId(), msg.getRecipientId(), msg.getSenderName(),
+            combinedMessages.stream().limit(10).forEach(msg -> {
+                LOGGER.info("Message ID: {}, SenderId: {}, RecipientId: {}, SenderName: {}, IsRead: {}, Content preview: {}", 
+                    msg.getId(), msg.getSenderId(), msg.getRecipientId(), msg.getSenderName(), msg.getIsRead(),
                     msg.getContent().length() > 50 ? msg.getContent().substring(0, 50) + "..." : msg.getContent());
             });
         } else {
             LOGGER.warn("No messages found for userId: {} (searched IDs: {})", query.userId(), idsToSearch);
+            // Log all messages in database for debugging
+            List<Message> allMessages = messageRepository.findAll();
+            LOGGER.warn("Total messages in database: {}", allMessages.size());
+            allMessages.stream().limit(10).forEach(msg -> {
+                LOGGER.warn("Sample message in DB - ID: {}, SenderId: {}, RecipientId: {}, SenderName: {}", 
+                    msg.getId(), msg.getSenderId(), msg.getRecipientId(), msg.getSenderName());
+            });
         }
         
         return combinedMessages;
