@@ -70,26 +70,34 @@ public class PublicationsController {
 
     @PostMapping
     @Operation(summary = "Create a new publication")
-    public ResponseEntity<PublicationResource> createPublication(@RequestBody CreatePublicationResource resource) {
-        var command = CreatePublicationCommandFromResourceAssembler.toCommandFromResource(resource);
-        var publication = publicationCommandService.handle(command);
-        if (publication.isEmpty()) {
-            return ResponseEntity.badRequest().build();
+    public ResponseEntity<?> createPublication(@RequestBody CreatePublicationResource resource) {
+        try {
+            var command = CreatePublicationCommandFromResourceAssembler.toCommandFromResource(resource);
+            var publication = publicationCommandService.handle(command);
+            if (publication.isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            var publicationResource = PublicationResourceFromEntityAssembler.toResourceFromEntity(publication.get());
+            return new ResponseEntity<>(publicationResource, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-        var publicationResource = PublicationResourceFromEntityAssembler.toResourceFromEntity(publication.get());
-        return new ResponseEntity<>(publicationResource, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a publication")
-    public ResponseEntity<PublicationResource> updatePublication(@PathVariable Long id, @RequestBody UpdatePublicationResource resource) {
-        var command = UpdatePublicationCommandFromResourceAssembler.toCommandFromResource(id, resource);
-        var publication = publicationCommandService.handle(command);
-        if (publication.isEmpty()) {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<?> updatePublication(@PathVariable Long id, @RequestBody UpdatePublicationResource resource) {
+        try {
+            var command = UpdatePublicationCommandFromResourceAssembler.toCommandFromResource(id, resource);
+            var publication = publicationCommandService.handle(command);
+            if (publication.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            var publicationResource = PublicationResourceFromEntityAssembler.toResourceFromEntity(publication.get());
+            return ResponseEntity.ok(publicationResource);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-        var publicationResource = PublicationResourceFromEntityAssembler.toResourceFromEntity(publication.get());
-        return ResponseEntity.ok(publicationResource);
     }
 
     @PutMapping("/{id}/like")

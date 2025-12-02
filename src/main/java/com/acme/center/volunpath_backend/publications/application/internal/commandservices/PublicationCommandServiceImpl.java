@@ -9,6 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Optional;
 
 /**
@@ -42,7 +45,9 @@ public class PublicationCommandServiceImpl implements PublicationCommandService 
 
         // Set new fields
         if (command.scheduledDate() != null && !command.scheduledDate().trim().isEmpty()) {
-            publication.setScheduledDate(command.scheduledDate().trim());
+            String dateStr = command.scheduledDate().trim();
+            validateFutureDate(dateStr);
+            publication.setScheduledDate(dateStr);
             LOGGER.info("Setting scheduledDate: {}", command.scheduledDate());
         } else {
             LOGGER.warn("scheduledDate is null or empty in CreatePublicationCommand");
@@ -88,7 +93,9 @@ public class PublicationCommandServiceImpl implements PublicationCommandService 
             publication.setStatus(command.status());
         }
         if (command.scheduledDate() != null && !command.scheduledDate().trim().isEmpty()) {
-            publication.setScheduledDate(command.scheduledDate().trim());
+            String dateStr = command.scheduledDate().trim();
+            validateFutureDate(dateStr);
+            publication.setScheduledDate(dateStr);
             LOGGER.info("Updating scheduledDate to: {}", command.scheduledDate());
         } else if (command.scheduledDate() != null) {
             LOGGER.warn("scheduledDate is empty string in UpdatePublicationCommand, keeping existing value");
@@ -133,6 +140,24 @@ public class PublicationCommandServiceImpl implements PublicationCommandService 
             throw new RuntimeException("Publication not found");
         }
         publicationRepository.deleteById(publicationId);
+    }
+
+    /**
+     * Validates that the scheduled date is in the future
+     * @param dateStr Date string in format YYYY-MM-DD
+     * @throws IllegalArgumentException if the date is in the past or invalid format
+     */
+    private void validateFutureDate(String dateStr) {
+        try {
+            LocalDate scheduledDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+            LocalDate today = LocalDate.now();
+            
+            if (scheduledDate.isBefore(today)) {
+                throw new IllegalArgumentException("La fecha programada debe ser una fecha futura. Fecha proporcionada: " + dateStr);
+            }
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Formato de fecha inválido. Se espera YYYY-MM-DD. Fecha proporcionada: " + dateStr, e);
+        }
     }
 }
 
