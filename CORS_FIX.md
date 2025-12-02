@@ -50,3 +50,4 @@ Después de hacer push de los cambios, verifica que Railway tenga las variables 
 3. Probar nuevamente el registro desde `volunpath.netlify.app`
 4. Verificar que las peticiones funcionen correctamente
 
+

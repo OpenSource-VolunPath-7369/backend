@@ -15,3 +15,4 @@ echo "Archivo JAR: $JAR_FILE"
 
 exec java -Dserver.port=$PORT -jar "$JAR_FILE"
 
+
