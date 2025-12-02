@@ -152,8 +152,8 @@ public class PublicationCommandServiceImpl implements PublicationCommandService 
             LocalDate scheduledDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
             LocalDate today = LocalDate.now();
             
-            if (scheduledDate.isBefore(today)) {
-                throw new IllegalArgumentException("La fecha programada debe ser una fecha futura. Fecha proporcionada: " + dateStr);
+            if (scheduledDate.isBefore(today) || scheduledDate.isEqual(today)) {
+                throw new IllegalArgumentException("La fecha debe ser mayor a la actual. Fecha proporcionada: " + dateStr);
             }
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("Formato de fecha inválido. Se espera YYYY-MM-DD. Fecha proporcionada: " + dateStr, e);
