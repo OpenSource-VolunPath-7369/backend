@@ -59,10 +59,17 @@ public class EnrollmentCommandServiceImpl implements EnrollmentCommandService {
                 enrollment.getId(), enrollment.getPublicationId(), enrollment.getVolunteerId());
 
         // Update publication counter
-        publication.setCurrentVolunteers(publication.getCurrentVolunteers() + 1);
-        publicationRepository.save(publication);
-        LOGGER.info("Publication counter updated: PublicationId={}, CurrentVolunteers={}", 
-                publication.getId(), publication.getCurrentVolunteers());
+        int newCount = publication.getCurrentVolunteers() + 1;
+        publication.setCurrentVolunteers(newCount);
+        Publication savedPublication = publicationRepository.saveAndFlush(publication);
+        LOGGER.info("Publication counter updated: PublicationId={}, OldCount={}, NewCount={}, SavedCount={}", 
+                publication.getId(), publication.getCurrentVolunteers() - 1, newCount, savedPublication.getCurrentVolunteers());
+        
+        // Verify the counter was actually saved
+        Publication refreshedPublication = publicationRepository.findById(publication.getId())
+                .orElseThrow(() -> new RuntimeException("Publicación no encontrada después de actualizar"));
+        LOGGER.info("Publication counter verified from DB: PublicationId={}, CurrentVolunteers={}", 
+                refreshedPublication.getId(), refreshedPublication.getCurrentVolunteers());
 
         return Optional.of(enrollment);
     }

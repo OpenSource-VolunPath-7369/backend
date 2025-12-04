@@ -26,5 +26,25 @@ public class PublicationResourceFromEntityAssembler {
                 publication.getUpdatedAt()
         );
     }
+    
+    public static PublicationResource toResourceFromEntity(Publication publication, Integer actualCurrentVolunteers) {
+        return new PublicationResource(
+                publication.getId(),
+                publication.getTitle(),
+                publication.getDescription(),
+                publication.getImage(),
+                publication.getOrganizationId(),
+                publication.getLikes(),
+                publication.getStatus(),
+                publication.getTags(),
+                publication.getScheduledDate(),
+                publication.getScheduledTime(),
+                publication.getLocation(),
+                publication.getMaxVolunteers(),
+                actualCurrentVolunteers != null ? actualCurrentVolunteers : publication.getCurrentVolunteers(),
+                publication.getCreatedAt(),
+                publication.getUpdatedAt()
+        );
+    }
 }
 
